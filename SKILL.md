@@ -12,8 +12,8 @@ When a normal web access step fails, keep the original task flow intact and inse
 ## When To Use
 
 Use this for failed access to:
-- External webpages, docs, package registries, GitHub releases, APIs, RSS feeds, dashboards, and data sources.
-- Tool failures from `curl`, browser navigation, Python `httpx/requests`, Node `fetch`, Playwright, fetcher services, or crawler jobs.
+- External webpages, docs, package registries, GitHub releases, Git clone/fetch/submodule downloads, APIs, RSS feeds, dashboards, and data sources.
+- Tool failures from `curl`, `git clone`, `git fetch`, `git submodule update`, browser navigation, Python `httpx/requests`, Node `fetch`, Playwright, fetcher services, or crawler jobs.
 - Errors such as timeout, connection reset, DNS failure, TLS handshake failure, `502`, proxy needed, or region/network blocking.
 
 Do not use it for localhost-only failures unless the app itself fetches external resources.
@@ -87,6 +87,8 @@ Mihomo is a recovery step, not a replacement for the user's original workflow.
 | Browser navigates to a page | Browser/network timeout or unreachable | Isolated proxy-bound browser or `curl -x` evidence | Continue the browser task after the page is reachable |
 | `curl`/download/API call | DNS, timeout, reset, TLS, blocked response | Repeat the same URL with `curl -x http://127.0.0.1:7890` | Use proxy only for that command or process |
 | Python/Node fetcher | Upstream fetch fails | Inject proxy env into that process and restart if needed | Verify the real endpoint/output |
+| Git HTTPS clone/fetch/submodule | `git clone` timeout/reset/TLS/DNS failure | Prefix only that command with `HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890` | Do not write global Git proxy unless user asks |
+| Git SSH clone/fetch | SSH to `github.com:22` times out or is blocked | Use `GIT_SSH_COMMAND='ssh -o ProxyCommand="nc -X 5 -x 127.0.0.1:7890 %h %p"'` if `nc` supports proxy mode, or switch remote to HTTPS and use HTTP proxy | Keep the change command-scoped unless configuring a project service |
 | Package/doc lookup | Direct registry/docs unreachable | Retry through proxy, then mirror/cache if needed | Keep the chosen source explicit |
 
 Do not skip a user's intended access method. Do not classify all `.com` as external or all mainland services by suffix. The only reliable trigger is observed failure from the current environment.
@@ -148,6 +150,9 @@ Use the least invasive option first:
 | Context | Preferred fix |
 |---|---|
 | One command | `curl -x http://127.0.0.1:7890 ...` |
+| Git over HTTPS | `HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890 NO_PROXY=127.0.0.1,localhost git clone https://github.com/owner/repo.git` |
+| Git submodules over HTTPS | `HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890 git submodule update --init --recursive` |
+| Git over SSH | Prefer one-command `GIT_SSH_COMMAND` with a SOCKS/HTTP-aware `nc`, or temporarily use an HTTPS remote and the HTTPS proxy env. Verify the local `nc` supports `-X/-x` before relying on it. |
 | Current shell | `export HTTP_PROXY=http://127.0.0.1:7890 HTTPS_PROXY=http://127.0.0.1:7890 ALL_PROXY=socks5://127.0.0.1:7890` |
 | Python `requests/httpx` | pass `proxy`/`proxies`, or set env vars for the process |
 | Node/fetcher service | inject `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY=127.0.0.1,localhost` into service env |
