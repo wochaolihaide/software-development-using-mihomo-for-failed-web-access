@@ -1,24 +1,52 @@
-# using-mihomo-for-failed-web-access
+# Mihomo Hermes Skills
 
-Hermes skill for handling failed web access in WSL/Linux by preserving the original direct access flow first, then using Mihomo as a recovery path when direct access fails.
+This repository publishes a small Mihomo skill set for Hermes Agent in WSL/Linux environments.
+
+## Included skills
+
+- `using-mihomo-for-failed-web-access`: recovery rules for failed web, API, download, browser, fetcher, and Git access.
+- `mihomo-wsl-local-proxy`: local Mihomo setup, validation, user systemd service, and opt-in proxy environment.
+
+The root `SKILL.md` keeps backward compatibility with the original single-skill repository and points to `using-mihomo-for-failed-web-access`.
 
 ## Install
 
-Copy `SKILL.md` into:
+### Single primary skill
 
-```text
-~/.hermes/skills/software-development/using-mihomo-for-failed-web-access/SKILL.md
+Copy the root skill into your Hermes skills directory:
+
+```bash
+mkdir -p ~/.hermes/skills/software-development/using-mihomo-for-failed-web-access
+cp SKILL.md ~/.hermes/skills/software-development/using-mihomo-for-failed-web-access/SKILL.md
 ```
 
-## Behavior
+### Full Mihomo skill set
 
-- Try the original access path first: browser, curl, fetcher, API, package registry, or documentation lookup.
-- Use Mihomo only after a concrete network failure such as timeout, DNS failure, connection reset, TLS failure, or unreachable host.
-- Retry the same target through `127.0.0.1:7890` with the smallest possible change.
-- Keep localhost and local services on `NO_PROXY`.
-- If Mihomo is missing or misconfigured, use the companion `mihomo-wsl-local-proxy` skill to install and validate it.
-- Do not classify all `.com` domains as external or all mainland services by suffix; observed failure is the trigger.
+Copy both skill directories:
 
-## Secret Handling
+```bash
+mkdir -p ~/.hermes/skills/software-development
+cp -a software-development/using-mihomo-for-failed-web-access ~/.hermes/skills/software-development/
+cp -a software-development/mihomo-wsl-local-proxy ~/.hermes/skills/software-development/
+```
 
-Do not commit subscription URLs, tokens, or credential-bearing config files.
+## Behavior summary
+
+- Direct access is tried first; Mihomo is a recovery path after observed network failure.
+- Git uses direct access first, then a suitable mirror/accelerator, and only then command-scoped Mihomo proxy variables.
+- Mainland and local/private networks stay direct by default.
+- Proxy settings are scoped to the failing command, browser session, fetcher process, or service start path.
+- Subscription URLs, tokens, and credential-bearing configs must not be committed or printed.
+
+## Expected local ports
+
+- Mixed proxy: `127.0.0.1:7890`
+- Controller: `127.0.0.1:9090`
+
+## Verification
+
+After installation, verify with:
+
+```bash
+hermes skills list | grep -E 'using-mihomo-for-failed-web-access|mihomo-wsl-local-proxy'
+```
